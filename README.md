@@ -43,6 +43,29 @@ to switch to, when this device is connected. Supported values are `Hdmi1`, `Hdmi
 If your monitor has an USB-C port, it's usually reported as `DisplayPort2`. Input can also be specified as a "raw"
 decimal or hexadecimal value: `on_usb_connect = 0x10`
 
+#### LG Display Support
+
+For LG displays that don't respond to standard DDC input switching commands, `display-switch` supports LG-specific
+input source values:
+
+- `LgHdmi1`, `LgHdmi2`, `LgHdmi3`, `LgHdmi4` - LG-specific HDMI inputs
+- `LgDisplayPort1`, `LgDisplayPort2`, `LgDisplayPort3`, `LgDisplayPort4` - LG-specific DisplayPort inputs  
+- `LgUsbC1`, `LgUsbC2`, `LgUsbC3`, `LgUsbC4` - LG-specific USB-C inputs
+
+These use different DDC command codes that work with LG monitors when the standard input switching fails.
+The application automatically detects LG displays and uses the appropriate communication protocol.
+
+Example configuration for LG displays:
+```ini
+usb_device = "1050:0407"
+on_usb_connect = "LgDisplayPort1"
+on_usb_disconnect = "LgHdmi1"
+```
+
+Note: Different LG models may respond to different input numbers. For example, some models like the 32UD99 use 
+`LgUsbC3`/`LgDisplayPort3`, while others like the 32QN650 use `LgUsbC1`/`LgDisplayPort1`. You may need to experiment 
+to find the correct input sources for your specific LG model.
+
 The optional `on_usb_disconnect` settings allows to switch in the other direction when the USB device is disconnected.
 Note that the preferred way is to have this app installed on both computers. Switching "away" is problematic: if the
 other computer has put the monitors to sleep, they will switch immediately back to the original input.

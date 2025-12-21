@@ -52,6 +52,20 @@ symbolic_input_source! {
     Dvi1: 0x3
     Dvi2: 0x4
     Vga1: 0x1
+    
+    // LG-specific input sources
+    LgDisplayPort1: 0xd0
+    LgDisplayPort2: 0xd1
+    LgDisplayPort3: 0xc0
+    LgDisplayPort4: 0xc1
+    LgHdmi1: 0x90
+    LgHdmi2: 0x91
+    LgHdmi3: 0x92
+    LgHdmi4: 0x93
+    LgUsbC1: 0xd2
+    LgUsbC2: 0xd3
+    LgUsbC3: 0xe0
+    LgUsbC4: 0xe1
 }
 
 #[derive(Clone, Copy)]
@@ -75,6 +89,25 @@ impl InputSource {
                 .map(Self::Symbolic)
                 .unwrap_or(Self::Raw(value)),
         }
+    }
+
+    /// Check if this input source is LG-specific
+    pub fn is_lg_specific(&self) -> bool {
+        match self {
+            Self::Symbolic(sym) => sym.is_lg_specific(),
+            Self::Raw(_) => false,
+        }
+    }
+}
+
+impl SymbolicInputSource {
+    /// Check if this symbolic input source is LG-specific
+    pub fn is_lg_specific(&self) -> bool {
+        matches!(self,
+            Self::LgDisplayPort1 | Self::LgDisplayPort2 | Self::LgDisplayPort3 | Self::LgDisplayPort4 |
+            Self::LgHdmi1 | Self::LgHdmi2 | Self::LgHdmi3 | Self::LgHdmi4 |
+            Self::LgUsbC1 | Self::LgUsbC2 | Self::LgUsbC3 | Self::LgUsbC4
+        )
     }
 }
 

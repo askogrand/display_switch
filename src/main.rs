@@ -17,9 +17,11 @@ mod app;
 mod configuration;
 mod display_control;
 mod input_source;
+mod lg_ddc;
 mod logging;
 mod platform;
 mod usb;
+mod vendor;
 
 #[derive(Parser, Debug)]
 #[command(version)]
