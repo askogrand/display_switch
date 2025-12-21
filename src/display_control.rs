@@ -51,19 +51,50 @@ fn are_display_names_unique(displays: &[Display]) -> bool {
     displays.iter().all(|display| hash.insert(display_name(display, None)))
 }
 
-fn try_switch_display(handle: &mut Handle, is_lg: bool, display_name: &str, input: InputSource) {
+fn try_switch_display(handle: &mut Handle, is_lg: bool, display_name_str: &str, input: InputSource) {
     // If user configured LG-specific inputs, assume they know it's an LG display
     let treat_as_lg = is_lg || input.is_lg_specific();
     
     if treat_as_lg && input.is_lg_specific() {
-        // For LG-specific inputs, try lunar CLI first since it works reliably
-        debug!("Attempting to switch LG display {} to {} using lunar CLI", display_name, input);
+        // For LG-specific inputs, use our low-level LG DDC implementation
+        debug!("Attempting to switch LG display {} to {} using native LG DDC", display_name_str, input);
         
-        if try_lunar_switch(input) {
-            info!("LG display {} set to {} using lunar CLI", display_name, input);
-            return;
+        if let Some(display) = ddc_hi::Display::enumerate().into_iter()
+            .find(|d| {
+                let d_name = display_name(&d, None);
+                let target_name = &display_name_str[1..display_name_str.len()-1];
+                d_name.contains(target_name)
+            }) 
+        {
+            let mut lg_handle = LgDdcHandle::new(display, true);
+            
+            // Check if already on target input
+            match lg_handle.get_input_source() {
+                Ok(current) if current == input.value() => {
+                    info!("LG display {} is already set to {}", display_name_str, input);
+                    return;
+                }
+                Ok(current) => {
+                    debug!("LG display {} currently on input {:#04X}, switching to {:#04X}", 
+                           display_name_str, current, input.value());
+                }
+                Err(e) => {
+                    warn!("Failed to get current LG input: {}", e);
+                }
+            }
+            
+            // Set the new input using LG DDC protocol
+            match lg_handle.set_input_source(input.value(), true) {
+                Ok(_) => {
+                    info!("LG display {} set to {} using native LG DDC", display_name_str, input);
+                    return;
+                }
+                Err(e) => {
+                    warn!("Native LG DDC failed: {}. Falling back to standard DDC", e);
+                }
+            }
         } else {
-            warn!("Lunar CLI failed, trying standard DDC for LG display {}", display_name);
+            warn!("Could not find display for LG DDC, falling back to standard DDC");
         }
     }
     
@@ -78,92 +109,37 @@ fn try_switch_display(handle: &mut Handle, is_lg: bool, display_name: &str, inpu
     match handle.get_vcp_feature(vcp_code) {
         Ok(raw_source) => {
             if raw_source.value() & 0xff == input.value() {
-                info!("Display {} is already set to {}", display_name, input);
+                info!("Display {} is already set to {}", display_name_str, input);
                 return;
             }
         }
         Err(err) => {
             warn!("Failed to get current input for display {} using VCP {:#04X}: {:?}", 
-                  display_name, vcp_code, err);
+                  display_name_str, vcp_code, err);
         }
     }
     
-    debug!("Setting display {} to {} using VCP {:#04X}", display_name, input, vcp_code);
+    debug!("Setting display {} to {} using VCP {:#04X}", display_name_str, input, vcp_code);
     match handle.set_vcp_feature(vcp_code, input.value()) {
         Ok(_) => {
-            info!("Display {} set to {}", display_name, input);
+            info!("Display {} set to {}", display_name_str, input);
         }
         Err(err) => {
             error!("Failed to set display {} to {} using VCP {:#04X} ({:?})", 
-                   display_name, input, vcp_code, err);
+                   display_name_str, input, vcp_code, err);
                    
             // Final fallback: try standard VCP for LG displays
             if treat_as_lg && vcp_code == LG_INPUT_SELECT {
-                warn!("Falling back to standard VCP code for LG display {}", display_name);
+                warn!("Falling back to standard VCP code for LG display {}", display_name_str);
                 match handle.set_vcp_feature(INPUT_SELECT, input.value()) {
                     Ok(_) => {
-                        info!("Display {} set to {} using standard VCP fallback", display_name, input);
+                        info!("Display {} set to {} using standard VCP fallback", display_name_str, input);
                     }
                     Err(fallback_err) => {
-                        error!("All methods failed for display {}: {:?}", display_name, fallback_err);
+                        error!("All methods failed for display {}: {:?}", display_name_str, fallback_err);
                     }
                 }
             }
-        }
-    }
-}
-
-/// Try switching using the lunar CLI command - works reliably for LG displays
-fn try_lunar_switch(input: InputSource) -> bool {
-    let lunar_input = match input {
-        InputSource::Symbolic(sym) => match sym {
-            crate::input_source::SymbolicInputSource::LgHdmi1 => "lgHdmi1",
-            crate::input_source::SymbolicInputSource::LgHdmi2 => "lgHdmi2", 
-            crate::input_source::SymbolicInputSource::LgHdmi3 => "lgHdmi3",
-            crate::input_source::SymbolicInputSource::LgHdmi4 => "lgHdmi4",
-            crate::input_source::SymbolicInputSource::LgDisplayPort1 => "lgDisplayPort1",
-            crate::input_source::SymbolicInputSource::LgDisplayPort2 => "lgDisplayPort2", 
-            crate::input_source::SymbolicInputSource::LgDisplayPort3 => "lgDisplayPort3",
-            crate::input_source::SymbolicInputSource::LgDisplayPort4 => "lgDisplayPort4",
-            crate::input_source::SymbolicInputSource::LgUsbC1 => "lgUsbC1",
-            crate::input_source::SymbolicInputSource::LgUsbC2 => "lgUsbC2",
-            crate::input_source::SymbolicInputSource::LgUsbC3 => "lgUsbC3", 
-            crate::input_source::SymbolicInputSource::LgUsbC4 => "lgUsbC4",
-            _ => {
-                debug!("Non-LG input passed to lunar switch: {:?}", sym);
-                return false;
-            }
-        },
-        InputSource::Raw(_) => {
-            debug!("Raw input value passed to lunar switch, not supported");
-            return false;
-        }
-    };
-
-    let lunar_path = std::env::var("HOME")
-        .map(|home| format!("{}/.local/bin/lunar", home))
-        .unwrap_or_else(|_| "/usr/local/bin/lunar".to_string());
-        
-    debug!("Calling lunar: {} displays lg input {}", lunar_path, lunar_input);
-    
-    match Command::new(&lunar_path)
-        .args(&["displays", "lg", "input", lunar_input])
-        .stdin(Stdio::null())
-        .output()
-    {
-        Ok(output) => {
-            if output.status.success() {
-                debug!("Lunar command succeeded: {}", String::from_utf8_lossy(&output.stdout));
-                true
-            } else {
-                warn!("Lunar command failed with status {}: {}", 
-                     output.status, String::from_utf8_lossy(&output.stderr));
-                false
-            }
-        }
-        Err(err) => {
-            warn!("Failed to execute lunar command: {}", err);
-            false
         }
     }
 }
