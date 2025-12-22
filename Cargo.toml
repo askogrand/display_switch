@@ -32,6 +32,8 @@ ddc-macos = "0.2.2"
 core-foundation = "0.10"
 core-graphics = "0.24"
 io-kit-sys = "0.4"
+libc = "0.2"
+mach2 = "0.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 ddc-i2c = "0.2"
