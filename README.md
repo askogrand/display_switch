@@ -1,13 +1,57 @@
-[![build](https://github.com/haimgel/display-switch/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/haimgel/display-switch/actions)
-[![GitHub license](https://img.shields.io/github/license/haimgel/display-switch)](https://github.com/haimgel/display-switch/blob/main/LICENSE)
+[![build](https://github.com/askogrand/display_switch/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/askogrand/display_switch/actions)
+[![GitHub license](https://img.shields.io/github/license/askogrand/display_switch)](https://github.com/askogrand/display_switch/blob/main/LICENSE)
+![LG Display Support](https://img.shields.io/badge/LG_Display-Enhanced_DDC-green)
+![Lock Screen Support](https://img.shields.io/badge/Lock_Screen-Supported-orange)
 
-# Turn a $30 USB switch into a full-featured KVM
+# Display Switch with Enhanced LG Support
 
-This utility watches for USB device connect/disconnect events and switches monitor inputs via DDC/CI. This turns
-a simple USB switch into a full-fledged KVM solution: press one button on your USB switch and all your monitors
-connect to a different input.
+Turn a $30 USB switch into a full-featured KVM with **native LG display support** featuring **fast IOKit DDC** communication.
 
-It is supposed to be installed on all computers that could be connected to these monitors, since the app only switches
+This enhanced version automatically detects LG displays and uses LG-specific DDC protocols for optimal performance. Features include lock screen switching, fast IOKit communication on macOS, and easy Homebrew installation.
+
+## Quick Start (macOS)
+
+```bash
+# Install via Homebrew
+brew tap askogrand/display-switch
+brew install askogrand/display-switch/display_switch
+
+# Configure (edit with your USB device ID)  
+cp /opt/homebrew/etc/display-switch/display-switch.ini.example /opt/homebrew/etc/display-switch/display-switch.ini
+
+# Start service
+brew services start askogrand/display-switch/display_switch
+```
+
+## LG Display Enhancements
+
+### 🚀 **Fast IOKit DDC**
+- Direct IOKit communication with LG source address `0x50`
+- Faster switching than standard DDC
+- Works with DisplayPort, HDMI, and USB-C inputs
+
+### 🔒 **Lock Screen Support**
+- Switches displays when macOS is locked  
+- Perfect for multiple machine workflows
+- No user session required
+
+### 🎯 **LG-Specific Protocol**
+- Uses VCP code `0xF4` instead of standard `0x60`
+- Automatic LG vendor detection
+- Proper input source mappings
+
+## LG Configuration Example
+
+```ini
+usb_device = "05e3:0626"
+
+[monitor1] 
+monitor_id = "LG ULTRAGEAR+"
+on_usb_connect = "LgDisplayPort1"    # Fast switching to DisplayPort
+on_usb_disconnect = "LgHdmi2"        # Optional fallback to HDMI
+```
+
+**Available LG inputs:** `LgHdmi1-4`, `LgDisplayPort1-4`, `LgUsbC1-4`
 monitors "one way" and relies on itself running on the other computers to switch it "the other way" as needed.
  
 ## Platforms supported
