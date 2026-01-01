@@ -259,6 +259,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-graphics"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "064badf302c3194842cf2c5d61f56cc88e54a759313879cdf03abdd27d0c3b97"
+dependencies = [
+ "bitflags 2.9.4",
+ "core-foundation",
+ "core-graphics-types",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
 name = "core-graphics-types"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -364,7 +377,7 @@ checksum = "28aca22e30b33daf41a5d269a19b00588adf5242ed5525d3818195de17a534dc"
 dependencies = [
  "core-foundation",
  "core-foundation-sys",
- "core-graphics",
+ "core-graphics 0.24.0",
  "ddc",
  "io-kit-sys",
  "mach2",
@@ -451,7 +464,7 @@ dependencies = [
  "clap",
  "config",
  "core-foundation",
- "core-graphics",
+ "core-graphics 0.25.0",
  "ddc",
  "ddc-hi",
  "ddc-i2c",
