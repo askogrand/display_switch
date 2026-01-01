@@ -31,7 +31,7 @@ vergen-git2 = { version = "1.0.0", features = ["build", "cargo"] }
 ddc-macos = "0.2.2"
 core-foundation = "0.10"
 core-graphics = "0.24"
-io-kit-sys = "0.4"
+io-kit-sys = "0.5"
 libc = "0.2"
 mach2 = "0.4"
 
